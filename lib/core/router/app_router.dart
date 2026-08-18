@@ -21,5 +21,10 @@ final appRouter = GoRouter(
       path: '/task/new',
       builder: (context, state) => const TaskEditorScreen(),
     ),
+    GoRoute(
+      path: '/task/:id/edit',
+      builder: (context, state) =>
+          TaskEditorScreen(taskId: int.parse(state.pathParameters['id']!)),
+    ),
   ],
 );

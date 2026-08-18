@@ -65,4 +65,33 @@ class NotificationService {
   }
 
   Future<void> cancel(int id) => _plugin.cancel(id: id);
+
+  /// Explicitly (re-)prompts for notification permission. `init` already
+  /// requests it on iOS, so this is mainly for a "turn on notifications"
+  /// button in Settings and for Android 13+, which needs it separately.
+  Future<bool> requestPermissions() async {
+    final ios = _plugin
+        .resolvePlatformSpecificImplementation<
+          IOSFlutterLocalNotificationsPlugin
+        >();
+    if (ios != null) {
+      final granted = await ios.requestPermissions(
+        alert: true,
+        badge: true,
+        sound: true,
+      );
+      return granted ?? false;
+    }
+
+    final android = _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >();
+    if (android != null) {
+      final granted = await android.requestNotificationsPermission();
+      return granted ?? false;
+    }
+
+    return false;
+  }
 }

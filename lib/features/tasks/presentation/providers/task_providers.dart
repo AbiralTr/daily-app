@@ -18,3 +18,19 @@ final tasksForSelectedDateProvider = StreamProvider<List<Task>>((ref) {
   final date = ref.watch(selectedDateProvider);
   return ref.watch(taskRepositoryProvider).watchTasksForDate(date);
 });
+
+/// Unfinished tasks from before the selected day — only meaningful (and
+/// only shown) when the selected day is today.
+final overdueTasksProvider = StreamProvider<List<Task>>((ref) {
+  final date = ref.watch(selectedDateProvider);
+  return ref.watch(taskRepositoryProvider).watchOverdueTasks(date);
+});
+
+/// Every task, kept around for the calendar's day markers.
+final allTasksProvider = StreamProvider<List<Task>>((ref) {
+  return ref.watch(taskRepositoryProvider).watchAllTasks();
+});
+
+final taskByIdProvider = FutureProvider.family<Task?, int>((ref, id) {
+  return ref.watch(taskRepositoryProvider).getTask(id);
+});

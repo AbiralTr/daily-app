@@ -67,6 +67,17 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _isDailyMeta = const VerificationMeta(
     'isDaily',
   );
@@ -81,6 +92,29 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
       'CHECK ("is_daily" IN (0, 1))',
     ),
     defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _priorityMeta = const VerificationMeta(
+    'priority',
+  );
+  @override
+  late final GeneratedColumn<int> priority = GeneratedColumn<int>(
+    'priority',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1),
+  );
+  static const VerificationMeta _categoryMeta = const VerificationMeta(
+    'category',
+  );
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+    'category',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
@@ -101,7 +135,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     notes,
     dueDate,
     isDone,
+    completedAt,
     isDaily,
+    priority,
+    category,
     createdAt,
   ];
   @override
@@ -147,10 +184,31 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         isDone.isAcceptableOrUnknown(data['is_done']!, _isDoneMeta),
       );
     }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
     if (data.containsKey('is_daily')) {
       context.handle(
         _isDailyMeta,
         isDaily.isAcceptableOrUnknown(data['is_daily']!, _isDailyMeta),
+      );
+    }
+    if (data.containsKey('priority')) {
+      context.handle(
+        _priorityMeta,
+        priority.isAcceptableOrUnknown(data['priority']!, _priorityMeta),
+      );
+    }
+    if (data.containsKey('category')) {
+      context.handle(
+        _categoryMeta,
+        category.isAcceptableOrUnknown(data['category']!, _categoryMeta),
       );
     }
     if (data.containsKey('created_at')) {
@@ -188,10 +246,22 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_done'],
       )!,
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      ),
       isDaily: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}is_daily'],
       )!,
+      priority: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}priority'],
+      )!,
+      category: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -214,8 +284,17 @@ class Task extends DataClass implements Insertable<Task> {
   final DateTime dueDate;
   final bool isDone;
 
+  /// When the task was marked done. Cleared when it's un-checked.
+  final DateTime? completedAt;
+
   /// Whether this task repeats every day rather than being a one-off.
   final bool isDaily;
+
+  /// Index into `TaskPriority.values` (0 = low, 1 = medium, 2 = high).
+  final int priority;
+
+  /// Free-form label, e.g. "Work", "Health". Empty/absent for uncategorized.
+  final String? category;
   final DateTime createdAt;
   const Task({
     required this.id,
@@ -223,7 +302,10 @@ class Task extends DataClass implements Insertable<Task> {
     this.notes,
     required this.dueDate,
     required this.isDone,
+    this.completedAt,
     required this.isDaily,
+    required this.priority,
+    this.category,
     required this.createdAt,
   });
   @override
@@ -236,7 +318,14 @@ class Task extends DataClass implements Insertable<Task> {
     }
     map['due_date'] = Variable<DateTime>(dueDate);
     map['is_done'] = Variable<bool>(isDone);
+    if (!nullToAbsent || completedAt != null) {
+      map['completed_at'] = Variable<DateTime>(completedAt);
+    }
     map['is_daily'] = Variable<bool>(isDaily);
+    map['priority'] = Variable<int>(priority);
+    if (!nullToAbsent || category != null) {
+      map['category'] = Variable<String>(category);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -250,7 +339,14 @@ class Task extends DataClass implements Insertable<Task> {
           : Value(notes),
       dueDate: Value(dueDate),
       isDone: Value(isDone),
+      completedAt: completedAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(completedAt),
       isDaily: Value(isDaily),
+      priority: Value(priority),
+      category: category == null && nullToAbsent
+          ? const Value.absent()
+          : Value(category),
       createdAt: Value(createdAt),
     );
   }
@@ -266,7 +362,10 @@ class Task extends DataClass implements Insertable<Task> {
       notes: serializer.fromJson<String?>(json['notes']),
       dueDate: serializer.fromJson<DateTime>(json['dueDate']),
       isDone: serializer.fromJson<bool>(json['isDone']),
+      completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
       isDaily: serializer.fromJson<bool>(json['isDaily']),
+      priority: serializer.fromJson<int>(json['priority']),
+      category: serializer.fromJson<String?>(json['category']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -279,7 +378,10 @@ class Task extends DataClass implements Insertable<Task> {
       'notes': serializer.toJson<String?>(notes),
       'dueDate': serializer.toJson<DateTime>(dueDate),
       'isDone': serializer.toJson<bool>(isDone),
+      'completedAt': serializer.toJson<DateTime?>(completedAt),
       'isDaily': serializer.toJson<bool>(isDaily),
+      'priority': serializer.toJson<int>(priority),
+      'category': serializer.toJson<String?>(category),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -290,7 +392,10 @@ class Task extends DataClass implements Insertable<Task> {
     Value<String?> notes = const Value.absent(),
     DateTime? dueDate,
     bool? isDone,
+    Value<DateTime?> completedAt = const Value.absent(),
     bool? isDaily,
+    int? priority,
+    Value<String?> category = const Value.absent(),
     DateTime? createdAt,
   }) => Task(
     id: id ?? this.id,
@@ -298,7 +403,10 @@ class Task extends DataClass implements Insertable<Task> {
     notes: notes.present ? notes.value : this.notes,
     dueDate: dueDate ?? this.dueDate,
     isDone: isDone ?? this.isDone,
+    completedAt: completedAt.present ? completedAt.value : this.completedAt,
     isDaily: isDaily ?? this.isDaily,
+    priority: priority ?? this.priority,
+    category: category.present ? category.value : this.category,
     createdAt: createdAt ?? this.createdAt,
   );
   Task copyWithCompanion(TasksCompanion data) {
@@ -308,7 +416,12 @@ class Task extends DataClass implements Insertable<Task> {
       notes: data.notes.present ? data.notes.value : this.notes,
       dueDate: data.dueDate.present ? data.dueDate.value : this.dueDate,
       isDone: data.isDone.present ? data.isDone.value : this.isDone,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
       isDaily: data.isDaily.present ? data.isDaily.value : this.isDaily,
+      priority: data.priority.present ? data.priority.value : this.priority,
+      category: data.category.present ? data.category.value : this.category,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -321,15 +434,28 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('notes: $notes, ')
           ..write('dueDate: $dueDate, ')
           ..write('isDone: $isDone, ')
+          ..write('completedAt: $completedAt, ')
           ..write('isDaily: $isDaily, ')
+          ..write('priority: $priority, ')
+          ..write('category: $category, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, title, notes, dueDate, isDone, isDaily, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    title,
+    notes,
+    dueDate,
+    isDone,
+    completedAt,
+    isDaily,
+    priority,
+    category,
+    createdAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -339,7 +465,10 @@ class Task extends DataClass implements Insertable<Task> {
           other.notes == this.notes &&
           other.dueDate == this.dueDate &&
           other.isDone == this.isDone &&
+          other.completedAt == this.completedAt &&
           other.isDaily == this.isDaily &&
+          other.priority == this.priority &&
+          other.category == this.category &&
           other.createdAt == this.createdAt);
 }
 
@@ -349,7 +478,10 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<String?> notes;
   final Value<DateTime> dueDate;
   final Value<bool> isDone;
+  final Value<DateTime?> completedAt;
   final Value<bool> isDaily;
+  final Value<int> priority;
+  final Value<String?> category;
   final Value<DateTime> createdAt;
   const TasksCompanion({
     this.id = const Value.absent(),
@@ -357,7 +489,10 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.notes = const Value.absent(),
     this.dueDate = const Value.absent(),
     this.isDone = const Value.absent(),
+    this.completedAt = const Value.absent(),
     this.isDaily = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.category = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   TasksCompanion.insert({
@@ -366,7 +501,10 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.notes = const Value.absent(),
     required DateTime dueDate,
     this.isDone = const Value.absent(),
+    this.completedAt = const Value.absent(),
     this.isDaily = const Value.absent(),
+    this.priority = const Value.absent(),
+    this.category = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : title = Value(title),
        dueDate = Value(dueDate);
@@ -376,7 +514,10 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<String>? notes,
     Expression<DateTime>? dueDate,
     Expression<bool>? isDone,
+    Expression<DateTime>? completedAt,
     Expression<bool>? isDaily,
+    Expression<int>? priority,
+    Expression<String>? category,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -385,7 +526,10 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (notes != null) 'notes': notes,
       if (dueDate != null) 'due_date': dueDate,
       if (isDone != null) 'is_done': isDone,
+      if (completedAt != null) 'completed_at': completedAt,
       if (isDaily != null) 'is_daily': isDaily,
+      if (priority != null) 'priority': priority,
+      if (category != null) 'category': category,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -396,7 +540,10 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<String?>? notes,
     Value<DateTime>? dueDate,
     Value<bool>? isDone,
+    Value<DateTime?>? completedAt,
     Value<bool>? isDaily,
+    Value<int>? priority,
+    Value<String?>? category,
     Value<DateTime>? createdAt,
   }) {
     return TasksCompanion(
@@ -405,7 +552,10 @@ class TasksCompanion extends UpdateCompanion<Task> {
       notes: notes ?? this.notes,
       dueDate: dueDate ?? this.dueDate,
       isDone: isDone ?? this.isDone,
+      completedAt: completedAt ?? this.completedAt,
       isDaily: isDaily ?? this.isDaily,
+      priority: priority ?? this.priority,
+      category: category ?? this.category,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -428,8 +578,17 @@ class TasksCompanion extends UpdateCompanion<Task> {
     if (isDone.present) {
       map['is_done'] = Variable<bool>(isDone.value);
     }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
     if (isDaily.present) {
       map['is_daily'] = Variable<bool>(isDaily.value);
+    }
+    if (priority.present) {
+      map['priority'] = Variable<int>(priority.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -445,7 +604,10 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('notes: $notes, ')
           ..write('dueDate: $dueDate, ')
           ..write('isDone: $isDone, ')
+          ..write('completedAt: $completedAt, ')
           ..write('isDaily: $isDaily, ')
+          ..write('priority: $priority, ')
+          ..write('category: $category, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -469,7 +631,10 @@ typedef $$TasksTableCreateCompanionBuilder = TasksCompanion Function({
   Value<String?> notes,
   required DateTime dueDate,
   Value<bool> isDone,
+  Value<DateTime?> completedAt,
   Value<bool> isDaily,
+  Value<int> priority,
+  Value<String?> category,
   Value<DateTime> createdAt,
 });
 typedef $$TasksTableUpdateCompanionBuilder = TasksCompanion Function({
@@ -478,7 +643,10 @@ typedef $$TasksTableUpdateCompanionBuilder = TasksCompanion Function({
   Value<String?> notes,
   Value<DateTime> dueDate,
   Value<bool> isDone,
+  Value<DateTime?> completedAt,
   Value<bool> isDaily,
+  Value<int> priority,
+  Value<String?> category,
   Value<DateTime> createdAt,
 });
 
@@ -515,8 +683,23 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<bool> get isDaily => $composableBuilder(
     column: $table.isDaily,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get category => $composableBuilder(
+    column: $table.category,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -560,8 +743,23 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get isDaily => $composableBuilder(
     column: $table.isDaily,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get priority => $composableBuilder(
+    column: $table.priority,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get category => $composableBuilder(
+    column: $table.category,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -595,8 +793,19 @@ class $$TasksTableAnnotationComposer
   GeneratedColumn<bool> get isDone =>
       $composableBuilder(column: $table.isDone, builder: (column) => column);
 
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<bool> get isDaily =>
       $composableBuilder(column: $table.isDaily, builder: (column) => column);
+
+  GeneratedColumn<int> get priority =>
+      $composableBuilder(column: $table.priority, builder: (column) => column);
+
+  GeneratedColumn<String> get category =>
+      $composableBuilder(column: $table.category, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -635,7 +844,10 @@ class $$TasksTableTableManager
                 Value<String?> notes = const Value.absent(),
                 Value<DateTime> dueDate = const Value.absent(),
                 Value<bool> isDone = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
                 Value<bool> isDaily = const Value.absent(),
+                Value<int> priority = const Value.absent(),
+                Value<String?> category = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TasksCompanion(
                 id: id,
@@ -643,7 +855,10 @@ class $$TasksTableTableManager
                 notes: notes,
                 dueDate: dueDate,
                 isDone: isDone,
+                completedAt: completedAt,
                 isDaily: isDaily,
+                priority: priority,
+                category: category,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -653,7 +868,10 @@ class $$TasksTableTableManager
                 Value<String?> notes = const Value.absent(),
                 required DateTime dueDate,
                 Value<bool> isDone = const Value.absent(),
+                Value<DateTime?> completedAt = const Value.absent(),
                 Value<bool> isDaily = const Value.absent(),
+                Value<int> priority = const Value.absent(),
+                Value<String?> category = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => TasksCompanion.insert(
                 id: id,
@@ -661,7 +879,10 @@ class $$TasksTableTableManager
                 notes: notes,
                 dueDate: dueDate,
                 isDone: isDone,
+                completedAt: completedAt,
                 isDaily: isDaily,
+                priority: priority,
+                category: category,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

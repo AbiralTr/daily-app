@@ -16,7 +16,19 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onCreate: (m) => m.createAll(),
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(tasks, tasks.completedAt);
+        await m.addColumn(tasks, tasks.priority);
+        await m.addColumn(tasks, tasks.category);
+      }
+    },
+  );
 
   /// All tasks due on [date] (ignoring time-of-day), earliest first.
   Stream<List<Task>> watchTasksForDate(DateTime date) {
@@ -32,6 +44,23 @@ class AppDatabase extends _$AppDatabase {
         .watch();
   }
 
+  /// Unfinished tasks due strictly before [date] (ignoring time-of-day).
+  Stream<List<Task>> watchOverdueTasks(DateTime date) {
+    final start = DateTime(date.year, date.month, date.day);
+    return (select(tasks)
+          ..where(
+            (t) => t.dueDate.isSmallerThanValue(start) & t.isDone.equals(false),
+          )
+          ..orderBy([(t) => OrderingTerm(expression: t.dueDate)]))
+        .watch();
+  }
+
+  /// Every task, used to build calendar markers.
+  Stream<List<Task>> watchAllTasks() => select(tasks).watch();
+
+  Future<Task?> getTask(int id) =>
+      (select(tasks)..where((t) => t.id.equals(id))).getSingleOrNull();
+
   Future<int> insertTask(TasksCompanion task) => into(tasks).insert(task);
 
   Future<bool> updateTask(TasksCompanion task) => update(tasks).replace(task);
@@ -40,8 +69,12 @@ class AppDatabase extends _$AppDatabase {
       (delete(tasks)..where((t) => t.id.equals(id))).go();
 
   Future<void> setDone(int id, bool done) =>
-      (update(tasks)..where((t) => t.id.equals(id)))
-          .write(TasksCompanion(isDone: Value(done)));
+      (update(tasks)..where((t) => t.id.equals(id))).write(
+        TasksCompanion(
+          isDone: Value(done),
+          completedAt: Value(done ? DateTime.now() : null),
+        ),
+      );
 }
 
 LazyDatabase _openConnection() {

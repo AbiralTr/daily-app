@@ -13,8 +13,17 @@ class Tasks extends Table {
 
   BoolColumn get isDone => boolean().withDefault(const Constant(false))();
 
+  /// When the task was marked done. Cleared when it's un-checked.
+  DateTimeColumn get completedAt => dateTime().nullable()();
+
   /// Whether this task repeats every day rather than being a one-off.
   BoolColumn get isDaily => boolean().withDefault(const Constant(false))();
+
+  /// Index into `TaskPriority.values` (0 = low, 1 = medium, 2 = high).
+  IntColumn get priority => integer().withDefault(const Constant(1))();
+
+  /// Free-form label, e.g. "Work", "Health". Empty/absent for uncategorized.
+  TextColumn get category => text().nullable()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
