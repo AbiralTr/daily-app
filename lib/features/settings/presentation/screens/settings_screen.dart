@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/theme/theme_mode_provider.dart';
-import '../../../../shared/widgets/app_bottom_nav.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -80,7 +79,6 @@ class SettingsScreen extends ConsumerWidget {
           ),
         ],
       ),
-      bottomNavigationBar: const AppBottomNav(selectedIndex: 2),
     );
   }
 }

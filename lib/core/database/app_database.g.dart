@@ -614,15 +614,519 @@ class TasksCompanion extends UpdateCompanion<Task> {
   }
 }
 
+class $EventsTable extends Events with TableInfo<$EventsTable, Event> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EventsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    additionalChecks: GeneratedColumn.checkTextLength(
+      minTextLength: 1,
+      maxTextLength: 200,
+    ),
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
+  @override
+  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
+    'notes',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _locationMeta = const VerificationMeta(
+    'location',
+  );
+  @override
+  late final GeneratedColumn<String> location = GeneratedColumn<String>(
+    'location',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _startAtMeta = const VerificationMeta(
+    'startAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> startAt = GeneratedColumn<DateTime>(
+    'start_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _endAtMeta = const VerificationMeta('endAt');
+  @override
+  late final GeneratedColumn<DateTime> endAt = GeneratedColumn<DateTime>(
+    'end_at',
+    aliasedName,
+    true,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _isAllDayMeta = const VerificationMeta(
+    'isAllDay',
+  );
+  @override
+  late final GeneratedColumn<bool> isAllDay = GeneratedColumn<bool>(
+    'is_all_day',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_all_day" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    notes,
+    location,
+    startAt,
+    endAt,
+    isAllDay,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'events';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Event> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('notes')) {
+      context.handle(
+        _notesMeta,
+        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
+      );
+    }
+    if (data.containsKey('location')) {
+      context.handle(
+        _locationMeta,
+        location.isAcceptableOrUnknown(data['location']!, _locationMeta),
+      );
+    }
+    if (data.containsKey('start_at')) {
+      context.handle(
+        _startAtMeta,
+        startAt.isAcceptableOrUnknown(data['start_at']!, _startAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_startAtMeta);
+    }
+    if (data.containsKey('end_at')) {
+      context.handle(
+        _endAtMeta,
+        endAt.isAcceptableOrUnknown(data['end_at']!, _endAtMeta),
+      );
+    }
+    if (data.containsKey('is_all_day')) {
+      context.handle(
+        _isAllDayMeta,
+        isAllDay.isAcceptableOrUnknown(data['is_all_day']!, _isAllDayMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Event map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Event(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      notes: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}notes'],
+      ),
+      location: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}location'],
+      ),
+      startAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}start_at'],
+      )!,
+      endAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}end_at'],
+      ),
+      isAllDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_all_day'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $EventsTable createAlias(String alias) {
+    return $EventsTable(attachedDatabase, alias);
+  }
+}
+
+class Event extends DataClass implements Insertable<Event> {
+  final int id;
+  final String title;
+  final String? notes;
+  final String? location;
+  final DateTime startAt;
+
+  /// Null for an event with no set end time.
+  final DateTime? endAt;
+  final bool isAllDay;
+  final DateTime createdAt;
+  const Event({
+    required this.id,
+    required this.title,
+    this.notes,
+    this.location,
+    required this.startAt,
+    this.endAt,
+    required this.isAllDay,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['title'] = Variable<String>(title);
+    if (!nullToAbsent || notes != null) {
+      map['notes'] = Variable<String>(notes);
+    }
+    if (!nullToAbsent || location != null) {
+      map['location'] = Variable<String>(location);
+    }
+    map['start_at'] = Variable<DateTime>(startAt);
+    if (!nullToAbsent || endAt != null) {
+      map['end_at'] = Variable<DateTime>(endAt);
+    }
+    map['is_all_day'] = Variable<bool>(isAllDay);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  EventsCompanion toCompanion(bool nullToAbsent) {
+    return EventsCompanion(
+      id: Value(id),
+      title: Value(title),
+      notes: notes == null && nullToAbsent
+          ? const Value.absent()
+          : Value(notes),
+      location: location == null && nullToAbsent
+          ? const Value.absent()
+          : Value(location),
+      startAt: Value(startAt),
+      endAt: endAt == null && nullToAbsent
+          ? const Value.absent()
+          : Value(endAt),
+      isAllDay: Value(isAllDay),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Event.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Event(
+      id: serializer.fromJson<int>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      notes: serializer.fromJson<String?>(json['notes']),
+      location: serializer.fromJson<String?>(json['location']),
+      startAt: serializer.fromJson<DateTime>(json['startAt']),
+      endAt: serializer.fromJson<DateTime?>(json['endAt']),
+      isAllDay: serializer.fromJson<bool>(json['isAllDay']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'title': serializer.toJson<String>(title),
+      'notes': serializer.toJson<String?>(notes),
+      'location': serializer.toJson<String?>(location),
+      'startAt': serializer.toJson<DateTime>(startAt),
+      'endAt': serializer.toJson<DateTime?>(endAt),
+      'isAllDay': serializer.toJson<bool>(isAllDay),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  Event copyWith({
+    int? id,
+    String? title,
+    Value<String?> notes = const Value.absent(),
+    Value<String?> location = const Value.absent(),
+    DateTime? startAt,
+    Value<DateTime?> endAt = const Value.absent(),
+    bool? isAllDay,
+    DateTime? createdAt,
+  }) => Event(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    notes: notes.present ? notes.value : this.notes,
+    location: location.present ? location.value : this.location,
+    startAt: startAt ?? this.startAt,
+    endAt: endAt.present ? endAt.value : this.endAt,
+    isAllDay: isAllDay ?? this.isAllDay,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  Event copyWithCompanion(EventsCompanion data) {
+    return Event(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      notes: data.notes.present ? data.notes.value : this.notes,
+      location: data.location.present ? data.location.value : this.location,
+      startAt: data.startAt.present ? data.startAt.value : this.startAt,
+      endAt: data.endAt.present ? data.endAt.value : this.endAt,
+      isAllDay: data.isAllDay.present ? data.isAllDay.value : this.isAllDay,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Event(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('notes: $notes, ')
+          ..write('location: $location, ')
+          ..write('startAt: $startAt, ')
+          ..write('endAt: $endAt, ')
+          ..write('isAllDay: $isAllDay, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    title,
+    notes,
+    location,
+    startAt,
+    endAt,
+    isAllDay,
+    createdAt,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Event &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.notes == this.notes &&
+          other.location == this.location &&
+          other.startAt == this.startAt &&
+          other.endAt == this.endAt &&
+          other.isAllDay == this.isAllDay &&
+          other.createdAt == this.createdAt);
+}
+
+class EventsCompanion extends UpdateCompanion<Event> {
+  final Value<int> id;
+  final Value<String> title;
+  final Value<String?> notes;
+  final Value<String?> location;
+  final Value<DateTime> startAt;
+  final Value<DateTime?> endAt;
+  final Value<bool> isAllDay;
+  final Value<DateTime> createdAt;
+  const EventsCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.notes = const Value.absent(),
+    this.location = const Value.absent(),
+    this.startAt = const Value.absent(),
+    this.endAt = const Value.absent(),
+    this.isAllDay = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  EventsCompanion.insert({
+    this.id = const Value.absent(),
+    required String title,
+    this.notes = const Value.absent(),
+    this.location = const Value.absent(),
+    required DateTime startAt,
+    this.endAt = const Value.absent(),
+    this.isAllDay = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : title = Value(title),
+       startAt = Value(startAt);
+  static Insertable<Event> custom({
+    Expression<int>? id,
+    Expression<String>? title,
+    Expression<String>? notes,
+    Expression<String>? location,
+    Expression<DateTime>? startAt,
+    Expression<DateTime>? endAt,
+    Expression<bool>? isAllDay,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (notes != null) 'notes': notes,
+      if (location != null) 'location': location,
+      if (startAt != null) 'start_at': startAt,
+      if (endAt != null) 'end_at': endAt,
+      if (isAllDay != null) 'is_all_day': isAllDay,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  EventsCompanion copyWith({
+    Value<int>? id,
+    Value<String>? title,
+    Value<String?>? notes,
+    Value<String?>? location,
+    Value<DateTime>? startAt,
+    Value<DateTime?>? endAt,
+    Value<bool>? isAllDay,
+    Value<DateTime>? createdAt,
+  }) {
+    return EventsCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      notes: notes ?? this.notes,
+      location: location ?? this.location,
+      startAt: startAt ?? this.startAt,
+      endAt: endAt ?? this.endAt,
+      isAllDay: isAllDay ?? this.isAllDay,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (notes.present) {
+      map['notes'] = Variable<String>(notes.value);
+    }
+    if (location.present) {
+      map['location'] = Variable<String>(location.value);
+    }
+    if (startAt.present) {
+      map['start_at'] = Variable<DateTime>(startAt.value);
+    }
+    if (endAt.present) {
+      map['end_at'] = Variable<DateTime>(endAt.value);
+    }
+    if (isAllDay.present) {
+      map['is_all_day'] = Variable<bool>(isAllDay.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EventsCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('notes: $notes, ')
+          ..write('location: $location, ')
+          ..write('startAt: $startAt, ')
+          ..write('endAt: $endAt, ')
+          ..write('isAllDay: $isAllDay, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $TasksTable tasks = $TasksTable(this);
+  late final $EventsTable events = $EventsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [tasks];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [tasks, events];
 }
 
 typedef $$TasksTableCreateCompanionBuilder = TasksCompanion Function({
@@ -907,10 +1411,255 @@ typedef $$TasksTableProcessedTableManager =
       Task,
       PrefetchHooks Function()
     >;
+typedef $$EventsTableCreateCompanionBuilder = EventsCompanion Function({
+  Value<int> id,
+  required String title,
+  Value<String?> notes,
+  Value<String?> location,
+  required DateTime startAt,
+  Value<DateTime?> endAt,
+  Value<bool> isAllDay,
+  Value<DateTime> createdAt,
+});
+typedef $$EventsTableUpdateCompanionBuilder = EventsCompanion Function({
+  Value<int> id,
+  Value<String> title,
+  Value<String?> notes,
+  Value<String?> location,
+  Value<DateTime> startAt,
+  Value<DateTime?> endAt,
+  Value<bool> isAllDay,
+  Value<DateTime> createdAt,
+});
+
+class $$EventsTableFilterComposer
+    extends Composer<_$AppDatabase, $EventsTable> {
+  $$EventsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get startAt => $composableBuilder(
+    column: $table.startAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get endAt => $composableBuilder(
+    column: $table.endAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isAllDay => $composableBuilder(
+    column: $table.isAllDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$EventsTableOrderingComposer
+    extends Composer<_$AppDatabase, $EventsTable> {
+  $$EventsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get notes => $composableBuilder(
+    column: $table.notes,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get location => $composableBuilder(
+    column: $table.location,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get startAt => $composableBuilder(
+    column: $table.startAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get endAt => $composableBuilder(
+    column: $table.endAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isAllDay => $composableBuilder(
+    column: $table.isAllDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$EventsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $EventsTable> {
+  $$EventsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get notes =>
+      $composableBuilder(column: $table.notes, builder: (column) => column);
+
+  GeneratedColumn<String> get location =>
+      $composableBuilder(column: $table.location, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get startAt =>
+      $composableBuilder(column: $table.startAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get endAt =>
+      $composableBuilder(column: $table.endAt, builder: (column) => column);
+
+  GeneratedColumn<bool> get isAllDay =>
+      $composableBuilder(column: $table.isAllDay, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$EventsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $EventsTable,
+          Event,
+          $$EventsTableFilterComposer,
+          $$EventsTableOrderingComposer,
+          $$EventsTableAnnotationComposer,
+          $$EventsTableCreateCompanionBuilder,
+          $$EventsTableUpdateCompanionBuilder,
+          (Event, BaseReferences<_$AppDatabase, $EventsTable, Event>),
+          Event,
+          PrefetchHooks Function()
+        > {
+  $$EventsTableTableManager(_$AppDatabase db, $EventsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$EventsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$EventsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$EventsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String?> notes = const Value.absent(),
+                Value<String?> location = const Value.absent(),
+                Value<DateTime> startAt = const Value.absent(),
+                Value<DateTime?> endAt = const Value.absent(),
+                Value<bool> isAllDay = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => EventsCompanion(
+                id: id,
+                title: title,
+                notes: notes,
+                location: location,
+                startAt: startAt,
+                endAt: endAt,
+                isAllDay: isAllDay,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required String title,
+                Value<String?> notes = const Value.absent(),
+                Value<String?> location = const Value.absent(),
+                required DateTime startAt,
+                Value<DateTime?> endAt = const Value.absent(),
+                Value<bool> isAllDay = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => EventsCompanion.insert(
+                id: id,
+                title: title,
+                notes: notes,
+                location: location,
+                startAt: startAt,
+                endAt: endAt,
+                isAllDay: isAllDay,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$EventsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $EventsTable,
+      Event,
+      $$EventsTableFilterComposer,
+      $$EventsTableOrderingComposer,
+      $$EventsTableAnnotationComposer,
+      $$EventsTableCreateCompanionBuilder,
+      $$EventsTableUpdateCompanionBuilder,
+      (Event, BaseReferences<_$AppDatabase, $EventsTable, Event>),
+      Event,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$TasksTableTableManager get tasks =>
       $$TasksTableTableManager(_db, _db.tasks);
+  $$EventsTableTableManager get events =>
+      $$EventsTableTableManager(_db, _db.events);
 }

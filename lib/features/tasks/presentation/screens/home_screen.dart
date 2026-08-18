@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/database/app_database.dart';
-import '../../../../shared/widgets/app_bottom_nav.dart';
 import '../../../../shared/widgets/progress_ring.dart';
 import '../providers/task_providers.dart';
 import '../widgets/task_tile.dart';
@@ -137,7 +136,6 @@ class HomeScreen extends ConsumerWidget {
         icon: const Icon(Icons.add),
         label: const Text('New task'),
       ),
-      bottomNavigationBar: const AppBottomNav(selectedIndex: 0),
     );
   }
 }

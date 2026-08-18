@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 
-/// The bottom navigation bar shared by the three top-level screens.
+/// The bottom navigation bar shared by the three top-level tabs. Purely
+/// presentational — the router shell decides what selecting a tab does.
 class AppBottomNav extends StatelessWidget {
-  const AppBottomNav({super.key, required this.selectedIndex});
+  const AppBottomNav({
+    super.key,
+    required this.selectedIndex,
+    required this.onSelect,
+  });
 
   final int selectedIndex;
-
-  static const _routes = ['/', '/calendar', '/settings'];
+  final ValueChanged<int> onSelect;
 
   @override
   Widget build(BuildContext context) {
     return NavigationBar(
       selectedIndex: selectedIndex,
-      onDestinationSelected: (index) {
-        if (index != selectedIndex) context.go(_routes[index]);
-      },
+      onDestinationSelected: onSelect,
       destinations: const [
         NavigationDestination(icon: Icon(Icons.today), label: 'Today'),
         NavigationDestination(

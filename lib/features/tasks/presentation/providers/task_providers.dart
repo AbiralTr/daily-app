@@ -2,16 +2,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/database_provider.dart';
+import '../../../../core/providers/selected_date_provider.dart';
 import '../../data/task_repository.dart';
+
+export '../../../../core/providers/selected_date_provider.dart';
 
 final taskRepositoryProvider = Provider<TaskRepository>((ref) {
   return TaskRepository(ref.watch(appDatabaseProvider));
-});
-
-/// The day currently shown on the home/calendar screens. Defaults to today.
-final selectedDateProvider = StateProvider<DateTime>((ref) {
-  final now = DateTime.now();
-  return DateTime(now.year, now.month, now.day);
 });
 
 final tasksForSelectedDateProvider = StreamProvider<List<Task>>((ref) {

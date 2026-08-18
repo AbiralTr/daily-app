@@ -3,7 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:table_calendar/table_calendar.dart';
 
-import '../../../../shared/widgets/app_bottom_nav.dart';
+import '../../../events/presentation/providers/event_providers.dart';
+import '../../../events/presentation/widgets/event_tile.dart';
 import '../../../tasks/presentation/providers/task_providers.dart';
 import '../../../tasks/presentation/widgets/task_tile.dart';
 
@@ -25,17 +26,63 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     _focusedDay = ref.read(selectedDateProvider);
   }
 
+  Future<void> _openAddSheet() async {
+    final choice = await showModalBottomSheet<_AddChoice>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.check_circle_outline),
+              title: const Text('New task'),
+              subtitle: const Text('Something to do and check off'),
+              onTap: () => Navigator.pop(context, _AddChoice.task),
+            ),
+            ListTile(
+              leading: const Icon(Icons.event_outlined),
+              title: const Text('New event'),
+              subtitle: const Text('Something happening at a set time'),
+              onTap: () => Navigator.pop(context, _AddChoice.event),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted || choice == null) return;
+    context.push(choice == _AddChoice.task ? '/task/new' : '/event/new');
+  }
+
   @override
   Widget build(BuildContext context) {
     final selectedDate = ref.watch(selectedDateProvider);
     final tasksAsync = ref.watch(tasksForSelectedDateProvider);
+    final eventsAsync = ref.watch(eventsForSelectedDateProvider);
     final allTasksAsync = ref.watch(allTasksProvider);
-    final repository = ref.read(taskRepositoryProvider);
+    final allEventsAsync = ref.watch(allEventsProvider);
+    final taskRepository = ref.read(taskRepositoryProvider);
 
-    final markedDays = allTasksAsync.maybeWhen(
-      data: (tasks) => tasks.map((t) => _dayOnly(t.dueDate)).toSet(),
-      orElse: () => <DateTime>{},
+    final markedDays = <DateTime>{
+      ...allTasksAsync.maybeWhen(
+        data: (tasks) => tasks.map((t) => _dayOnly(t.dueDate)),
+        orElse: () => const <DateTime>[],
+      ),
+      ...allEventsAsync.maybeWhen(
+        data: (events) => events.map((e) => _dayOnly(e.startAt)),
+        orElse: () => const <DateTime>[],
+      ),
+    };
+
+    final hasEvents = eventsAsync.maybeWhen(
+      data: (events) => events.isNotEmpty,
+      orElse: () => false,
     );
+    final hasTasks = tasksAsync.maybeWhen(
+      data: (tasks) => tasks.isNotEmpty,
+      orElse: () => false,
+    );
+    final isLoading = eventsAsync.isLoading || tasksAsync.isLoading;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Calendar')),
@@ -69,36 +116,63 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           ),
           const Divider(height: 1),
           Expanded(
-            child: tasksAsync.when(
-              data: (tasks) {
-                if (tasks.isEmpty) {
-                  return const Center(child: Text('No tasks for this day.'));
-                }
-                return ListView.builder(
-                  padding: const EdgeInsets.only(top: 8, bottom: 24),
-                  itemCount: tasks.length,
-                  itemBuilder: (context, index) {
-                    final task = tasks[index];
-                    return TaskTile(
-                      task: task,
-                      onToggle: () => repository.toggleDone(task),
-                      onDelete: () => repository.deleteTask(task.id),
-                      onTap: () => context.push('/task/${task.id}/edit'),
-                    );
-                  },
-                );
-              },
-              error: (error, stack) => Center(child: Text('Error: $error')),
-              loading: () => const Center(child: CircularProgressIndicator()),
-            ),
+            child: isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : !hasEvents && !hasTasks
+                ? const Center(child: Text('Nothing on this day.'))
+                : ListView(
+                    padding: const EdgeInsets.only(top: 8, bottom: 24),
+                    children: [
+                      if (hasEvents) ...[
+                        const _SectionLabel('Events'),
+                        for (final event in eventsAsync.value!)
+                          EventTile(
+                            event: event,
+                            onTap: () =>
+                                context.push('/event/${event.id}/edit'),
+                          ),
+                      ],
+                      if (hasTasks) ...[
+                        const _SectionLabel('Tasks'),
+                        for (final task in tasksAsync.value!)
+                          TaskTile(
+                            task: task,
+                            onToggle: () => taskRepository.toggleDone(task),
+                            onDelete: () => taskRepository.deleteTask(task.id),
+                            onTap: () => context.push('/task/${task.id}/edit'),
+                          ),
+                      ],
+                    ],
+                  ),
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push('/task/new'),
+        onPressed: _openAddSheet,
         child: const Icon(Icons.add),
       ),
-      bottomNavigationBar: const AppBottomNav(selectedIndex: 1),
+    );
+  }
+}
+
+enum _AddChoice { task, event }
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
+      child: Text(
+        label.toUpperCase(),
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+          letterSpacing: 0.6,
+        ),
+      ),
     );
   }
 }
