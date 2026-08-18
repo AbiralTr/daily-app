@@ -62,24 +62,23 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final allTasksAsync = ref.watch(allTasksProvider);
     final allEventsAsync = ref.watch(allEventsProvider);
     final taskRepository = ref.read(taskRepositoryProvider);
+    final eventRepository = ref.read(eventRepositoryProvider);
 
-    final markedDays = <DateTime>{
-      ...allTasksAsync.maybeWhen(
-        data: (tasks) => tasks.map((t) => _dayOnly(t.dueDate)),
-        orElse: () => const <DateTime>[],
-      ),
-      ...allEventsAsync.maybeWhen(
-        data: (events) => events.map((e) => _dayOnly(e.startAt)),
-        orElse: () => const <DateTime>[],
-      ),
-    };
+    final allTasks = allTasksAsync.valueOrNull ?? const [];
+    final allEvents = allEventsAsync.valueOrNull ?? const [];
+
+    bool dayHasMarker(DateTime day) {
+      final d = _dayOnly(day);
+      return allTasks.any((t) => taskRepository.occursOn(t, d)) ||
+          allEvents.any((e) => eventRepository.occursOn(e, d));
+    }
 
     final hasEvents = eventsAsync.maybeWhen(
       data: (events) => events.isNotEmpty,
       orElse: () => false,
     );
     final hasTasks = tasksAsync.maybeWhen(
-      data: (tasks) => tasks.isNotEmpty,
+      data: (occurrences) => occurrences.isNotEmpty,
       orElse: () => false,
     );
     final isLoading = eventsAsync.isLoading || tasksAsync.isLoading;
@@ -93,8 +92,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             lastDay: DateTime.now().add(const Duration(days: 365)),
             focusedDay: _focusedDay,
             selectedDayPredicate: (day) => isSameDay(day, selectedDate),
-            eventLoader: (day) =>
-                markedDays.contains(_dayOnly(day)) ? const [1] : const [],
+            eventLoader: (day) => dayHasMarker(day) ? const [1] : const [],
             onDaySelected: (selectedDay, focusedDay) {
               setState(() => _focusedDay = focusedDay);
               ref.read(selectedDateProvider.notifier).state = _dayOnly(
@@ -125,21 +123,26 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     children: [
                       if (hasEvents) ...[
                         const _SectionLabel('Events'),
-                        for (final event in eventsAsync.value!)
+                        for (final occurrence in eventsAsync.value!)
                           EventTile(
-                            event: event,
-                            onTap: () =>
-                                context.push('/event/${event.id}/edit'),
+                            occurrence: occurrence,
+                            onTap: () => context.push(
+                              '/event/${occurrence.event.id}/edit',
+                            ),
                           ),
                       ],
                       if (hasTasks) ...[
                         const _SectionLabel('Tasks'),
-                        for (final task in tasksAsync.value!)
+                        for (final occurrence in tasksAsync.value!)
                           TaskTile(
-                            task: task,
-                            onToggle: () => taskRepository.toggleDone(task),
-                            onDelete: () => taskRepository.deleteTask(task.id),
-                            onTap: () => context.push('/task/${task.id}/edit'),
+                            occurrence: occurrence,
+                            onToggle: () =>
+                                taskRepository.toggleOccurrence(occurrence),
+                            onDelete: () =>
+                                taskRepository.deleteTask(occurrence.task.id),
+                            onTap: () => context.push(
+                              '/task/${occurrence.task.id}/edit',
+                            ),
                           ),
                       ],
                     ],

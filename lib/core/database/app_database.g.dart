@@ -78,20 +78,16 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     type: DriftSqlType.dateTime,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _isDailyMeta = const VerificationMeta(
-    'isDaily',
+  static const VerificationMeta _recurrenceMeta = const VerificationMeta(
+    'recurrence',
   );
   @override
-  late final GeneratedColumn<bool> isDaily = GeneratedColumn<bool>(
-    'is_daily',
+  late final GeneratedColumn<String> recurrence = GeneratedColumn<String>(
+    'recurrence',
     aliasedName,
-    false,
-    type: DriftSqlType.bool,
+    true,
+    type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultConstraints: GeneratedColumn.constraintIsAlways(
-      'CHECK ("is_daily" IN (0, 1))',
-    ),
-    defaultValue: const Constant(false),
   );
   static const VerificationMeta _priorityMeta = const VerificationMeta(
     'priority',
@@ -136,7 +132,7 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
     dueDate,
     isDone,
     completedAt,
-    isDaily,
+    recurrence,
     priority,
     category,
     createdAt,
@@ -193,10 +189,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         ),
       );
     }
-    if (data.containsKey('is_daily')) {
+    if (data.containsKey('recurrence')) {
       context.handle(
-        _isDailyMeta,
-        isDaily.isAcceptableOrUnknown(data['is_daily']!, _isDailyMeta),
+        _recurrenceMeta,
+        recurrence.isAcceptableOrUnknown(data['recurrence']!, _recurrenceMeta),
       );
     }
     if (data.containsKey('priority')) {
@@ -250,10 +246,10 @@ class $TasksTable extends Tasks with TableInfo<$TasksTable, Task> {
         DriftSqlType.dateTime,
         data['${effectivePrefix}completed_at'],
       ),
-      isDaily: attachedDatabase.typeMapping.read(
-        DriftSqlType.bool,
-        data['${effectivePrefix}is_daily'],
-      )!,
+      recurrence: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurrence'],
+      ),
       priority: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}priority'],
@@ -287,8 +283,9 @@ class Task extends DataClass implements Insertable<Task> {
   /// When the task was marked done. Cleared when it's un-checked.
   final DateTime? completedAt;
 
-  /// Whether this task repeats every day rather than being a one-off.
-  final bool isDaily;
+  /// Encoded [Recurrence] — null/absent means a one-off task. See
+  /// `Recurrence.encode`/`decode`.
+  final String? recurrence;
 
   /// Index into `TaskPriority.values` (0 = low, 1 = medium, 2 = high).
   final int priority;
@@ -303,7 +300,7 @@ class Task extends DataClass implements Insertable<Task> {
     required this.dueDate,
     required this.isDone,
     this.completedAt,
-    required this.isDaily,
+    this.recurrence,
     required this.priority,
     this.category,
     required this.createdAt,
@@ -321,7 +318,9 @@ class Task extends DataClass implements Insertable<Task> {
     if (!nullToAbsent || completedAt != null) {
       map['completed_at'] = Variable<DateTime>(completedAt);
     }
-    map['is_daily'] = Variable<bool>(isDaily);
+    if (!nullToAbsent || recurrence != null) {
+      map['recurrence'] = Variable<String>(recurrence);
+    }
     map['priority'] = Variable<int>(priority);
     if (!nullToAbsent || category != null) {
       map['category'] = Variable<String>(category);
@@ -342,7 +341,9 @@ class Task extends DataClass implements Insertable<Task> {
       completedAt: completedAt == null && nullToAbsent
           ? const Value.absent()
           : Value(completedAt),
-      isDaily: Value(isDaily),
+      recurrence: recurrence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurrence),
       priority: Value(priority),
       category: category == null && nullToAbsent
           ? const Value.absent()
@@ -363,7 +364,7 @@ class Task extends DataClass implements Insertable<Task> {
       dueDate: serializer.fromJson<DateTime>(json['dueDate']),
       isDone: serializer.fromJson<bool>(json['isDone']),
       completedAt: serializer.fromJson<DateTime?>(json['completedAt']),
-      isDaily: serializer.fromJson<bool>(json['isDaily']),
+      recurrence: serializer.fromJson<String?>(json['recurrence']),
       priority: serializer.fromJson<int>(json['priority']),
       category: serializer.fromJson<String?>(json['category']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -379,7 +380,7 @@ class Task extends DataClass implements Insertable<Task> {
       'dueDate': serializer.toJson<DateTime>(dueDate),
       'isDone': serializer.toJson<bool>(isDone),
       'completedAt': serializer.toJson<DateTime?>(completedAt),
-      'isDaily': serializer.toJson<bool>(isDaily),
+      'recurrence': serializer.toJson<String?>(recurrence),
       'priority': serializer.toJson<int>(priority),
       'category': serializer.toJson<String?>(category),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -393,7 +394,7 @@ class Task extends DataClass implements Insertable<Task> {
     DateTime? dueDate,
     bool? isDone,
     Value<DateTime?> completedAt = const Value.absent(),
-    bool? isDaily,
+    Value<String?> recurrence = const Value.absent(),
     int? priority,
     Value<String?> category = const Value.absent(),
     DateTime? createdAt,
@@ -404,7 +405,7 @@ class Task extends DataClass implements Insertable<Task> {
     dueDate: dueDate ?? this.dueDate,
     isDone: isDone ?? this.isDone,
     completedAt: completedAt.present ? completedAt.value : this.completedAt,
-    isDaily: isDaily ?? this.isDaily,
+    recurrence: recurrence.present ? recurrence.value : this.recurrence,
     priority: priority ?? this.priority,
     category: category.present ? category.value : this.category,
     createdAt: createdAt ?? this.createdAt,
@@ -419,7 +420,9 @@ class Task extends DataClass implements Insertable<Task> {
       completedAt: data.completedAt.present
           ? data.completedAt.value
           : this.completedAt,
-      isDaily: data.isDaily.present ? data.isDaily.value : this.isDaily,
+      recurrence: data.recurrence.present
+          ? data.recurrence.value
+          : this.recurrence,
       priority: data.priority.present ? data.priority.value : this.priority,
       category: data.category.present ? data.category.value : this.category,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
@@ -435,7 +438,7 @@ class Task extends DataClass implements Insertable<Task> {
           ..write('dueDate: $dueDate, ')
           ..write('isDone: $isDone, ')
           ..write('completedAt: $completedAt, ')
-          ..write('isDaily: $isDaily, ')
+          ..write('recurrence: $recurrence, ')
           ..write('priority: $priority, ')
           ..write('category: $category, ')
           ..write('createdAt: $createdAt')
@@ -451,7 +454,7 @@ class Task extends DataClass implements Insertable<Task> {
     dueDate,
     isDone,
     completedAt,
-    isDaily,
+    recurrence,
     priority,
     category,
     createdAt,
@@ -466,7 +469,7 @@ class Task extends DataClass implements Insertable<Task> {
           other.dueDate == this.dueDate &&
           other.isDone == this.isDone &&
           other.completedAt == this.completedAt &&
-          other.isDaily == this.isDaily &&
+          other.recurrence == this.recurrence &&
           other.priority == this.priority &&
           other.category == this.category &&
           other.createdAt == this.createdAt);
@@ -479,7 +482,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
   final Value<DateTime> dueDate;
   final Value<bool> isDone;
   final Value<DateTime?> completedAt;
-  final Value<bool> isDaily;
+  final Value<String?> recurrence;
   final Value<int> priority;
   final Value<String?> category;
   final Value<DateTime> createdAt;
@@ -490,7 +493,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     this.dueDate = const Value.absent(),
     this.isDone = const Value.absent(),
     this.completedAt = const Value.absent(),
-    this.isDaily = const Value.absent(),
+    this.recurrence = const Value.absent(),
     this.priority = const Value.absent(),
     this.category = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -502,7 +505,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     required DateTime dueDate,
     this.isDone = const Value.absent(),
     this.completedAt = const Value.absent(),
-    this.isDaily = const Value.absent(),
+    this.recurrence = const Value.absent(),
     this.priority = const Value.absent(),
     this.category = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -515,7 +518,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Expression<DateTime>? dueDate,
     Expression<bool>? isDone,
     Expression<DateTime>? completedAt,
-    Expression<bool>? isDaily,
+    Expression<String>? recurrence,
     Expression<int>? priority,
     Expression<String>? category,
     Expression<DateTime>? createdAt,
@@ -527,7 +530,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       if (dueDate != null) 'due_date': dueDate,
       if (isDone != null) 'is_done': isDone,
       if (completedAt != null) 'completed_at': completedAt,
-      if (isDaily != null) 'is_daily': isDaily,
+      if (recurrence != null) 'recurrence': recurrence,
       if (priority != null) 'priority': priority,
       if (category != null) 'category': category,
       if (createdAt != null) 'created_at': createdAt,
@@ -541,7 +544,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
     Value<DateTime>? dueDate,
     Value<bool>? isDone,
     Value<DateTime?>? completedAt,
-    Value<bool>? isDaily,
+    Value<String?>? recurrence,
     Value<int>? priority,
     Value<String?>? category,
     Value<DateTime>? createdAt,
@@ -553,7 +556,7 @@ class TasksCompanion extends UpdateCompanion<Task> {
       dueDate: dueDate ?? this.dueDate,
       isDone: isDone ?? this.isDone,
       completedAt: completedAt ?? this.completedAt,
-      isDaily: isDaily ?? this.isDaily,
+      recurrence: recurrence ?? this.recurrence,
       priority: priority ?? this.priority,
       category: category ?? this.category,
       createdAt: createdAt ?? this.createdAt,
@@ -581,8 +584,8 @@ class TasksCompanion extends UpdateCompanion<Task> {
     if (completedAt.present) {
       map['completed_at'] = Variable<DateTime>(completedAt.value);
     }
-    if (isDaily.present) {
-      map['is_daily'] = Variable<bool>(isDaily.value);
+    if (recurrence.present) {
+      map['recurrence'] = Variable<String>(recurrence.value);
     }
     if (priority.present) {
       map['priority'] = Variable<int>(priority.value);
@@ -605,10 +608,283 @@ class TasksCompanion extends UpdateCompanion<Task> {
           ..write('dueDate: $dueDate, ')
           ..write('isDone: $isDone, ')
           ..write('completedAt: $completedAt, ')
-          ..write('isDaily: $isDaily, ')
+          ..write('recurrence: $recurrence, ')
           ..write('priority: $priority, ')
           ..write('category: $category, ')
           ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $TaskCompletionsTable extends TaskCompletions
+    with TableInfo<$TaskCompletionsTable, TaskCompletion> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $TaskCompletionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _taskIdMeta = const VerificationMeta('taskId');
+  @override
+  late final GeneratedColumn<int> taskId = GeneratedColumn<int>(
+    'task_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES tasks (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _dateMeta = const VerificationMeta('date');
+  @override
+  late final GeneratedColumn<DateTime> date = GeneratedColumn<DateTime>(
+    'date',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _completedAtMeta = const VerificationMeta(
+    'completedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> completedAt = GeneratedColumn<DateTime>(
+    'completed_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [taskId, date, completedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'task_completions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<TaskCompletion> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('task_id')) {
+      context.handle(
+        _taskIdMeta,
+        taskId.isAcceptableOrUnknown(data['task_id']!, _taskIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_taskIdMeta);
+    }
+    if (data.containsKey('date')) {
+      context.handle(
+        _dateMeta,
+        date.isAcceptableOrUnknown(data['date']!, _dateMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_dateMeta);
+    }
+    if (data.containsKey('completed_at')) {
+      context.handle(
+        _completedAtMeta,
+        completedAt.isAcceptableOrUnknown(
+          data['completed_at']!,
+          _completedAtMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {taskId, date};
+  @override
+  TaskCompletion map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return TaskCompletion(
+      taskId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}task_id'],
+      )!,
+      date: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}date'],
+      )!,
+      completedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}completed_at'],
+      )!,
+    );
+  }
+
+  @override
+  $TaskCompletionsTable createAlias(String alias) {
+    return $TaskCompletionsTable(attachedDatabase, alias);
+  }
+}
+
+class TaskCompletion extends DataClass implements Insertable<TaskCompletion> {
+  final int taskId;
+
+  /// Day-only (midnight) date of the occurrence that was completed.
+  final DateTime date;
+  final DateTime completedAt;
+  const TaskCompletion({
+    required this.taskId,
+    required this.date,
+    required this.completedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['task_id'] = Variable<int>(taskId);
+    map['date'] = Variable<DateTime>(date);
+    map['completed_at'] = Variable<DateTime>(completedAt);
+    return map;
+  }
+
+  TaskCompletionsCompanion toCompanion(bool nullToAbsent) {
+    return TaskCompletionsCompanion(
+      taskId: Value(taskId),
+      date: Value(date),
+      completedAt: Value(completedAt),
+    );
+  }
+
+  factory TaskCompletion.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return TaskCompletion(
+      taskId: serializer.fromJson<int>(json['taskId']),
+      date: serializer.fromJson<DateTime>(json['date']),
+      completedAt: serializer.fromJson<DateTime>(json['completedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'taskId': serializer.toJson<int>(taskId),
+      'date': serializer.toJson<DateTime>(date),
+      'completedAt': serializer.toJson<DateTime>(completedAt),
+    };
+  }
+
+  TaskCompletion copyWith({
+    int? taskId,
+    DateTime? date,
+    DateTime? completedAt,
+  }) => TaskCompletion(
+    taskId: taskId ?? this.taskId,
+    date: date ?? this.date,
+    completedAt: completedAt ?? this.completedAt,
+  );
+  TaskCompletion copyWithCompanion(TaskCompletionsCompanion data) {
+    return TaskCompletion(
+      taskId: data.taskId.present ? data.taskId.value : this.taskId,
+      date: data.date.present ? data.date.value : this.date,
+      completedAt: data.completedAt.present
+          ? data.completedAt.value
+          : this.completedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaskCompletion(')
+          ..write('taskId: $taskId, ')
+          ..write('date: $date, ')
+          ..write('completedAt: $completedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(taskId, date, completedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is TaskCompletion &&
+          other.taskId == this.taskId &&
+          other.date == this.date &&
+          other.completedAt == this.completedAt);
+}
+
+class TaskCompletionsCompanion extends UpdateCompanion<TaskCompletion> {
+  final Value<int> taskId;
+  final Value<DateTime> date;
+  final Value<DateTime> completedAt;
+  final Value<int> rowid;
+  const TaskCompletionsCompanion({
+    this.taskId = const Value.absent(),
+    this.date = const Value.absent(),
+    this.completedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  TaskCompletionsCompanion.insert({
+    required int taskId,
+    required DateTime date,
+    this.completedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : taskId = Value(taskId),
+       date = Value(date);
+  static Insertable<TaskCompletion> custom({
+    Expression<int>? taskId,
+    Expression<DateTime>? date,
+    Expression<DateTime>? completedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (taskId != null) 'task_id': taskId,
+      if (date != null) 'date': date,
+      if (completedAt != null) 'completed_at': completedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  TaskCompletionsCompanion copyWith({
+    Value<int>? taskId,
+    Value<DateTime>? date,
+    Value<DateTime>? completedAt,
+    Value<int>? rowid,
+  }) {
+    return TaskCompletionsCompanion(
+      taskId: taskId ?? this.taskId,
+      date: date ?? this.date,
+      completedAt: completedAt ?? this.completedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (taskId.present) {
+      map['task_id'] = Variable<int>(taskId.value);
+    }
+    if (date.present) {
+      map['date'] = Variable<DateTime>(date.value);
+    }
+    if (completedAt.present) {
+      map['completed_at'] = Variable<DateTime>(completedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('TaskCompletionsCompanion(')
+          ..write('taskId: $taskId, ')
+          ..write('date: $date, ')
+          ..write('completedAt: $completedAt, ')
+          ..write('rowid: $rowid')
           ..write(')'))
         .toString();
   }
@@ -700,6 +976,17 @@ class $EventsTable extends Events with TableInfo<$EventsTable, Event> {
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _recurrenceMeta = const VerificationMeta(
+    'recurrence',
+  );
+  @override
+  late final GeneratedColumn<String> recurrence = GeneratedColumn<String>(
+    'recurrence',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -721,6 +1008,7 @@ class $EventsTable extends Events with TableInfo<$EventsTable, Event> {
     startAt,
     endAt,
     isAllDay,
+    recurrence,
     createdAt,
   ];
   @override
@@ -778,6 +1066,12 @@ class $EventsTable extends Events with TableInfo<$EventsTable, Event> {
         isAllDay.isAcceptableOrUnknown(data['is_all_day']!, _isAllDayMeta),
       );
     }
+    if (data.containsKey('recurrence')) {
+      context.handle(
+        _recurrenceMeta,
+        recurrence.isAcceptableOrUnknown(data['recurrence']!, _recurrenceMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -821,6 +1115,10 @@ class $EventsTable extends Events with TableInfo<$EventsTable, Event> {
         DriftSqlType.bool,
         data['${effectivePrefix}is_all_day'],
       )!,
+      recurrence: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recurrence'],
+      ),
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -844,6 +1142,11 @@ class Event extends DataClass implements Insertable<Event> {
   /// Null for an event with no set end time.
   final DateTime? endAt;
   final bool isAllDay;
+
+  /// Encoded [Recurrence] — null/absent means a one-off event. When set,
+  /// [startAt]/[endAt] supply only the time-of-day template; the actual
+  /// occurrence date comes from whichever day is being viewed.
+  final String? recurrence;
   final DateTime createdAt;
   const Event({
     required this.id,
@@ -853,6 +1156,7 @@ class Event extends DataClass implements Insertable<Event> {
     required this.startAt,
     this.endAt,
     required this.isAllDay,
+    this.recurrence,
     required this.createdAt,
   });
   @override
@@ -871,6 +1175,9 @@ class Event extends DataClass implements Insertable<Event> {
       map['end_at'] = Variable<DateTime>(endAt);
     }
     map['is_all_day'] = Variable<bool>(isAllDay);
+    if (!nullToAbsent || recurrence != null) {
+      map['recurrence'] = Variable<String>(recurrence);
+    }
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -890,6 +1197,9 @@ class Event extends DataClass implements Insertable<Event> {
           ? const Value.absent()
           : Value(endAt),
       isAllDay: Value(isAllDay),
+      recurrence: recurrence == null && nullToAbsent
+          ? const Value.absent()
+          : Value(recurrence),
       createdAt: Value(createdAt),
     );
   }
@@ -907,6 +1217,7 @@ class Event extends DataClass implements Insertable<Event> {
       startAt: serializer.fromJson<DateTime>(json['startAt']),
       endAt: serializer.fromJson<DateTime?>(json['endAt']),
       isAllDay: serializer.fromJson<bool>(json['isAllDay']),
+      recurrence: serializer.fromJson<String?>(json['recurrence']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -921,6 +1232,7 @@ class Event extends DataClass implements Insertable<Event> {
       'startAt': serializer.toJson<DateTime>(startAt),
       'endAt': serializer.toJson<DateTime?>(endAt),
       'isAllDay': serializer.toJson<bool>(isAllDay),
+      'recurrence': serializer.toJson<String?>(recurrence),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -933,6 +1245,7 @@ class Event extends DataClass implements Insertable<Event> {
     DateTime? startAt,
     Value<DateTime?> endAt = const Value.absent(),
     bool? isAllDay,
+    Value<String?> recurrence = const Value.absent(),
     DateTime? createdAt,
   }) => Event(
     id: id ?? this.id,
@@ -942,6 +1255,7 @@ class Event extends DataClass implements Insertable<Event> {
     startAt: startAt ?? this.startAt,
     endAt: endAt.present ? endAt.value : this.endAt,
     isAllDay: isAllDay ?? this.isAllDay,
+    recurrence: recurrence.present ? recurrence.value : this.recurrence,
     createdAt: createdAt ?? this.createdAt,
   );
   Event copyWithCompanion(EventsCompanion data) {
@@ -953,6 +1267,9 @@ class Event extends DataClass implements Insertable<Event> {
       startAt: data.startAt.present ? data.startAt.value : this.startAt,
       endAt: data.endAt.present ? data.endAt.value : this.endAt,
       isAllDay: data.isAllDay.present ? data.isAllDay.value : this.isAllDay,
+      recurrence: data.recurrence.present
+          ? data.recurrence.value
+          : this.recurrence,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -967,6 +1284,7 @@ class Event extends DataClass implements Insertable<Event> {
           ..write('startAt: $startAt, ')
           ..write('endAt: $endAt, ')
           ..write('isAllDay: $isAllDay, ')
+          ..write('recurrence: $recurrence, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -981,6 +1299,7 @@ class Event extends DataClass implements Insertable<Event> {
     startAt,
     endAt,
     isAllDay,
+    recurrence,
     createdAt,
   );
   @override
@@ -994,6 +1313,7 @@ class Event extends DataClass implements Insertable<Event> {
           other.startAt == this.startAt &&
           other.endAt == this.endAt &&
           other.isAllDay == this.isAllDay &&
+          other.recurrence == this.recurrence &&
           other.createdAt == this.createdAt);
 }
 
@@ -1005,6 +1325,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
   final Value<DateTime> startAt;
   final Value<DateTime?> endAt;
   final Value<bool> isAllDay;
+  final Value<String?> recurrence;
   final Value<DateTime> createdAt;
   const EventsCompanion({
     this.id = const Value.absent(),
@@ -1014,6 +1335,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
     this.startAt = const Value.absent(),
     this.endAt = const Value.absent(),
     this.isAllDay = const Value.absent(),
+    this.recurrence = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   EventsCompanion.insert({
@@ -1024,6 +1346,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
     required DateTime startAt,
     this.endAt = const Value.absent(),
     this.isAllDay = const Value.absent(),
+    this.recurrence = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : title = Value(title),
        startAt = Value(startAt);
@@ -1035,6 +1358,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
     Expression<DateTime>? startAt,
     Expression<DateTime>? endAt,
     Expression<bool>? isAllDay,
+    Expression<String>? recurrence,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -1045,6 +1369,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
       if (startAt != null) 'start_at': startAt,
       if (endAt != null) 'end_at': endAt,
       if (isAllDay != null) 'is_all_day': isAllDay,
+      if (recurrence != null) 'recurrence': recurrence,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -1057,6 +1382,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
     Value<DateTime>? startAt,
     Value<DateTime?>? endAt,
     Value<bool>? isAllDay,
+    Value<String?>? recurrence,
     Value<DateTime>? createdAt,
   }) {
     return EventsCompanion(
@@ -1067,6 +1393,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
       startAt: startAt ?? this.startAt,
       endAt: endAt ?? this.endAt,
       isAllDay: isAllDay ?? this.isAllDay,
+      recurrence: recurrence ?? this.recurrence,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -1095,6 +1422,9 @@ class EventsCompanion extends UpdateCompanion<Event> {
     if (isAllDay.present) {
       map['is_all_day'] = Variable<bool>(isAllDay.value);
     }
+    if (recurrence.present) {
+      map['recurrence'] = Variable<String>(recurrence.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1111,6 +1441,7 @@ class EventsCompanion extends UpdateCompanion<Event> {
           ..write('startAt: $startAt, ')
           ..write('endAt: $endAt, ')
           ..write('isAllDay: $isAllDay, ')
+          ..write('recurrence: $recurrence, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -1121,12 +1452,29 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $TasksTable tasks = $TasksTable(this);
+  late final $TaskCompletionsTable taskCompletions = $TaskCompletionsTable(
+    this,
+  );
   late final $EventsTable events = $EventsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [tasks, events];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    tasks,
+    taskCompletions,
+    events,
+  ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'tasks',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('task_completions', kind: UpdateKind.delete)],
+    ),
+  ]);
 }
 
 typedef $$TasksTableCreateCompanionBuilder = TasksCompanion Function({
@@ -1136,7 +1484,7 @@ typedef $$TasksTableCreateCompanionBuilder = TasksCompanion Function({
   required DateTime dueDate,
   Value<bool> isDone,
   Value<DateTime?> completedAt,
-  Value<bool> isDaily,
+  Value<String?> recurrence,
   Value<int> priority,
   Value<String?> category,
   Value<DateTime> createdAt,
@@ -1148,11 +1496,36 @@ typedef $$TasksTableUpdateCompanionBuilder = TasksCompanion Function({
   Value<DateTime> dueDate,
   Value<bool> isDone,
   Value<DateTime?> completedAt,
-  Value<bool> isDaily,
+  Value<String?> recurrence,
   Value<int> priority,
   Value<String?> category,
   Value<DateTime> createdAt,
 });
+
+final class $$TasksTableReferences
+    extends BaseReferences<_$AppDatabase, $TasksTable, Task> {
+  $$TasksTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$TaskCompletionsTable, List<TaskCompletion>>
+  _taskCompletionsRefsTable(_$AppDatabase db) => MultiTypedResultKey.fromTable(
+    db.taskCompletions,
+    aliasName: 'tasks__id__task_completions__task_id',
+  );
+
+  $$TaskCompletionsTableProcessedTableManager get taskCompletionsRefs {
+    final manager = $$TaskCompletionsTableTableManager(
+      $_db,
+      $_db.taskCompletions,
+    ).filter((f) => f.taskId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _taskCompletionsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
 
 class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
   $$TasksTableFilterComposer({
@@ -1192,8 +1565,8 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
     builder: (column) => ColumnFilters(column),
   );
 
-  ColumnFilters<bool> get isDaily => $composableBuilder(
-    column: $table.isDaily,
+  ColumnFilters<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1211,6 +1584,31 @@ class $$TasksTableFilterComposer extends Composer<_$AppDatabase, $TasksTable> {
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> taskCompletionsRefs(
+    Expression<bool> Function($$TaskCompletionsTableFilterComposer f) f,
+  ) {
+    final $$TaskCompletionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.taskCompletions,
+      getReferencedColumn: (t) => t.taskId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TaskCompletionsTableFilterComposer(
+            $db: $db,
+            $table: $db.taskCompletions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TasksTableOrderingComposer
@@ -1252,8 +1650,8 @@ class $$TasksTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<bool> get isDaily => $composableBuilder(
-    column: $table.isDaily,
+  ColumnOrderings<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -1302,8 +1700,10 @@ class $$TasksTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<bool> get isDaily =>
-      $composableBuilder(column: $table.isDaily, builder: (column) => column);
+  GeneratedColumn<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<int> get priority =>
       $composableBuilder(column: $table.priority, builder: (column) => column);
@@ -1313,6 +1713,31 @@ class $$TasksTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  Expression<T> taskCompletionsRefs<T extends Object>(
+    Expression<T> Function($$TaskCompletionsTableAnnotationComposer a) f,
+  ) {
+    final $$TaskCompletionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.taskCompletions,
+      getReferencedColumn: (t) => t.taskId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TaskCompletionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.taskCompletions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$TasksTableTableManager
@@ -1326,9 +1751,9 @@ class $$TasksTableTableManager
           $$TasksTableAnnotationComposer,
           $$TasksTableCreateCompanionBuilder,
           $$TasksTableUpdateCompanionBuilder,
-          (Task, BaseReferences<_$AppDatabase, $TasksTable, Task>),
+          (Task, $$TasksTableReferences),
           Task,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool taskCompletionsRefs})
         > {
   $$TasksTableTableManager(_$AppDatabase db, $TasksTable table)
     : super(
@@ -1349,7 +1774,7 @@ class $$TasksTableTableManager
                 Value<DateTime> dueDate = const Value.absent(),
                 Value<bool> isDone = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
-                Value<bool> isDaily = const Value.absent(),
+                Value<String?> recurrence = const Value.absent(),
                 Value<int> priority = const Value.absent(),
                 Value<String?> category = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -1360,7 +1785,7 @@ class $$TasksTableTableManager
                 dueDate: dueDate,
                 isDone: isDone,
                 completedAt: completedAt,
-                isDaily: isDaily,
+                recurrence: recurrence,
                 priority: priority,
                 category: category,
                 createdAt: createdAt,
@@ -1373,7 +1798,7 @@ class $$TasksTableTableManager
                 required DateTime dueDate,
                 Value<bool> isDone = const Value.absent(),
                 Value<DateTime?> completedAt = const Value.absent(),
-                Value<bool> isDaily = const Value.absent(),
+                Value<String?> recurrence = const Value.absent(),
                 Value<int> priority = const Value.absent(),
                 Value<String?> category = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -1384,15 +1809,48 @@ class $$TasksTableTableManager
                 dueDate: dueDate,
                 isDone: isDone,
                 completedAt: completedAt,
-                isDaily: isDaily,
+                recurrence: recurrence,
                 priority: priority,
                 category: category,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) =>
+                    (e.readTable(table), $$TasksTableReferences(db, table, e)),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({taskCompletionsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (taskCompletionsRefs) db.taskCompletions,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (taskCompletionsRefs)
+                    await $_getPrefetchedData<
+                      Task,
+                      $TasksTable,
+                      TaskCompletion
+                    >(
+                      currentTable: table,
+                      referencedTable: $$TasksTableReferences
+                          ._taskCompletionsRefsTable(db),
+                      managerFromTypedResult: (p0) => $$TasksTableReferences(
+                        db,
+                        table,
+                        p0,
+                      ).taskCompletionsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.taskId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -1407,9 +1865,295 @@ typedef $$TasksTableProcessedTableManager =
       $$TasksTableAnnotationComposer,
       $$TasksTableCreateCompanionBuilder,
       $$TasksTableUpdateCompanionBuilder,
-      (Task, BaseReferences<_$AppDatabase, $TasksTable, Task>),
+      (Task, $$TasksTableReferences),
       Task,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool taskCompletionsRefs})
+    >;
+typedef $$TaskCompletionsTableCreateCompanionBuilder =
+    TaskCompletionsCompanion Function({
+      required int taskId,
+      required DateTime date,
+      Value<DateTime> completedAt,
+      Value<int> rowid,
+    });
+typedef $$TaskCompletionsTableUpdateCompanionBuilder =
+    TaskCompletionsCompanion Function({
+      Value<int> taskId,
+      Value<DateTime> date,
+      Value<DateTime> completedAt,
+      Value<int> rowid,
+    });
+
+final class $$TaskCompletionsTableReferences
+    extends
+        BaseReferences<_$AppDatabase, $TaskCompletionsTable, TaskCompletion> {
+  $$TaskCompletionsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $TasksTable _taskIdTable(_$AppDatabase db) =>
+      db.tasks.createAlias('task_completions__task_id__tasks__id');
+
+  $$TasksTableProcessedTableManager get taskId {
+    final $_column = $_itemColumn<int>('task_id')!;
+
+    final manager = $$TasksTableTableManager(
+      $_db,
+      $_db.tasks,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_taskIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$TaskCompletionsTableFilterComposer
+    extends Composer<_$AppDatabase, $TaskCompletionsTable> {
+  $$TaskCompletionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$TasksTableFilterComposer get taskId {
+    final $$TasksTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.taskId,
+      referencedTable: $db.tasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TasksTableFilterComposer(
+            $db: $db,
+            $table: $db.tasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TaskCompletionsTableOrderingComposer
+    extends Composer<_$AppDatabase, $TaskCompletionsTable> {
+  $$TaskCompletionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<DateTime> get date => $composableBuilder(
+    column: $table.date,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$TasksTableOrderingComposer get taskId {
+    final $$TasksTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.taskId,
+      referencedTable: $db.tasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TasksTableOrderingComposer(
+            $db: $db,
+            $table: $db.tasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TaskCompletionsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $TaskCompletionsTable> {
+  $$TaskCompletionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<DateTime> get date =>
+      $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get completedAt => $composableBuilder(
+    column: $table.completedAt,
+    builder: (column) => column,
+  );
+
+  $$TasksTableAnnotationComposer get taskId {
+    final $$TasksTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.taskId,
+      referencedTable: $db.tasks,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$TasksTableAnnotationComposer(
+            $db: $db,
+            $table: $db.tasks,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$TaskCompletionsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $TaskCompletionsTable,
+          TaskCompletion,
+          $$TaskCompletionsTableFilterComposer,
+          $$TaskCompletionsTableOrderingComposer,
+          $$TaskCompletionsTableAnnotationComposer,
+          $$TaskCompletionsTableCreateCompanionBuilder,
+          $$TaskCompletionsTableUpdateCompanionBuilder,
+          (TaskCompletion, $$TaskCompletionsTableReferences),
+          TaskCompletion,
+          PrefetchHooks Function({bool taskId})
+        > {
+  $$TaskCompletionsTableTableManager(
+    _$AppDatabase db,
+    $TaskCompletionsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$TaskCompletionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$TaskCompletionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$TaskCompletionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> taskId = const Value.absent(),
+                Value<DateTime> date = const Value.absent(),
+                Value<DateTime> completedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TaskCompletionsCompanion(
+                taskId: taskId,
+                date: date,
+                completedAt: completedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required int taskId,
+                required DateTime date,
+                Value<DateTime> completedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => TaskCompletionsCompanion.insert(
+                taskId: taskId,
+                date: date,
+                completedAt: completedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$TaskCompletionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({taskId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (taskId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.taskId,
+                        referencedTable: $$TaskCompletionsTableReferences
+                            ._taskIdTable(db),
+                        referencedColumn: $$TaskCompletionsTableReferences
+                            ._taskIdTable(db)
+                            .id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$TaskCompletionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $TaskCompletionsTable,
+      TaskCompletion,
+      $$TaskCompletionsTableFilterComposer,
+      $$TaskCompletionsTableOrderingComposer,
+      $$TaskCompletionsTableAnnotationComposer,
+      $$TaskCompletionsTableCreateCompanionBuilder,
+      $$TaskCompletionsTableUpdateCompanionBuilder,
+      (TaskCompletion, $$TaskCompletionsTableReferences),
+      TaskCompletion,
+      PrefetchHooks Function({bool taskId})
     >;
 typedef $$EventsTableCreateCompanionBuilder = EventsCompanion Function({
   Value<int> id,
@@ -1419,6 +2163,7 @@ typedef $$EventsTableCreateCompanionBuilder = EventsCompanion Function({
   required DateTime startAt,
   Value<DateTime?> endAt,
   Value<bool> isAllDay,
+  Value<String?> recurrence,
   Value<DateTime> createdAt,
 });
 typedef $$EventsTableUpdateCompanionBuilder = EventsCompanion Function({
@@ -1429,6 +2174,7 @@ typedef $$EventsTableUpdateCompanionBuilder = EventsCompanion Function({
   Value<DateTime> startAt,
   Value<DateTime?> endAt,
   Value<bool> isAllDay,
+  Value<String?> recurrence,
   Value<DateTime> createdAt,
 });
 
@@ -1473,6 +2219,11 @@ class $$EventsTableFilterComposer
 
   ColumnFilters<bool> get isAllDay => $composableBuilder(
     column: $table.isAllDay,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -1526,6 +2277,11 @@ class $$EventsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -1561,6 +2317,11 @@ class $$EventsTableAnnotationComposer
 
   GeneratedColumn<bool> get isAllDay =>
       $composableBuilder(column: $table.isAllDay, builder: (column) => column);
+
+  GeneratedColumn<String> get recurrence => $composableBuilder(
+    column: $table.recurrence,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -1601,6 +2362,7 @@ class $$EventsTableTableManager
                 Value<DateTime> startAt = const Value.absent(),
                 Value<DateTime?> endAt = const Value.absent(),
                 Value<bool> isAllDay = const Value.absent(),
+                Value<String?> recurrence = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => EventsCompanion(
                 id: id,
@@ -1610,6 +2372,7 @@ class $$EventsTableTableManager
                 startAt: startAt,
                 endAt: endAt,
                 isAllDay: isAllDay,
+                recurrence: recurrence,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -1621,6 +2384,7 @@ class $$EventsTableTableManager
                 required DateTime startAt,
                 Value<DateTime?> endAt = const Value.absent(),
                 Value<bool> isAllDay = const Value.absent(),
+                Value<String?> recurrence = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => EventsCompanion.insert(
                 id: id,
@@ -1630,6 +2394,7 @@ class $$EventsTableTableManager
                 startAt: startAt,
                 endAt: endAt,
                 isAllDay: isAllDay,
+                recurrence: recurrence,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -1660,6 +2425,8 @@ class $AppDatabaseManager {
   $AppDatabaseManager(this._db);
   $$TasksTableTableManager get tasks =>
       $$TasksTableTableManager(_db, _db.tasks);
+  $$TaskCompletionsTableTableManager get taskCompletions =>
+      $$TaskCompletionsTableTableManager(_db, _db.taskCompletions);
   $$EventsTableTableManager get events =>
       $$EventsTableTableManager(_db, _db.events);
 }

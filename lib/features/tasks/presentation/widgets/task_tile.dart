@@ -2,20 +2,21 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
-import '../../../../core/database/app_database.dart';
+import '../../../../core/models/recurrence.dart';
 import '../../../../shared/widgets/meta_chip.dart';
+import '../../domain/task_occurrence.dart';
 import '../../domain/task_priority.dart';
 
 class TaskTile extends StatelessWidget {
   const TaskTile({
     super.key,
-    required this.task,
+    required this.occurrence,
     required this.onToggle,
     required this.onDelete,
     required this.onTap,
   });
 
-  final Task task;
+  final TaskOccurrence occurrence;
   final VoidCallback onToggle;
   final VoidCallback onDelete;
   final VoidCallback onTap;
@@ -24,8 +25,12 @@ class TaskTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final task = occurrence.task;
+    final isDone = occurrence.isDone;
     final priority = TaskPriority.fromValue(task.priority);
-    final hasTimeOfDay = task.dueDate.hour != 0 || task.dueDate.minute != 0;
+    final recurrence = Recurrence.decode(task.recurrence);
+    final dueDate = task.dueDate;
+    final hasTimeOfDay = dueDate.hour != 0 || dueDate.minute != 0;
 
     return Dismissible(
       key: ValueKey(task.id),
@@ -55,7 +60,7 @@ class TaskTile extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _CheckBubble(
-                    done: task.isDone,
+                    done: isDone,
                     color: priority.color,
                     onTap: onToggle,
                   ),
@@ -67,10 +72,10 @@ class TaskTile extends StatelessWidget {
                         Text(
                           task.title,
                           style: theme.textTheme.bodyLarge?.copyWith(
-                            decoration: task.isDone
+                            decoration: isDone
                                 ? TextDecoration.lineThrough
                                 : null,
-                            color: task.isDone
+                            color: isDone
                                 ? scheme.onSurfaceVariant
                                 : scheme.onSurface,
                           ),
@@ -95,12 +100,12 @@ class TaskTile extends StatelessWidget {
                             if (hasTimeOfDay)
                               MetaChip(
                                 icon: Icons.schedule,
-                                label: DateFormat.jm().format(task.dueDate),
+                                label: DateFormat.jm().format(dueDate),
                               ),
-                            if (task.isDaily)
-                              const MetaChip(
+                            if (recurrence.repeats)
+                              MetaChip(
                                 icon: Icons.repeat,
-                                label: 'Daily',
+                                label: recurrence.label,
                               ),
                             if (task.category case final category?
                                 when category.isNotEmpty)

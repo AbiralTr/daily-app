@@ -19,5 +19,10 @@ class Events extends Table {
 
   BoolColumn get isAllDay => boolean().withDefault(const Constant(false))();
 
+  /// Encoded [Recurrence] — null/absent means a one-off event. When set,
+  /// [startAt]/[endAt] supply only the time-of-day template; the actual
+  /// occurrence date comes from whichever day is being viewed.
+  TextColumn get recurrence => text().nullable()();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }

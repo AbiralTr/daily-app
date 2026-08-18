@@ -4,7 +4,10 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/database/app_database.dart';
+import '../../../../core/models/recurrence.dart';
+import '../../../../core/notifications/notification_service.dart';
 import '../../../../core/providers/selected_date_provider.dart';
+import '../../../../shared/widgets/recurrence_picker.dart';
 import '../providers/event_providers.dart';
 
 /// Handles both creating an event (`eventId == null`) and editing an
@@ -27,6 +30,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
   late DateTime _startAt;
   DateTime? _endAt;
   bool _isAllDay = false;
+  Recurrence _recurrence = const Recurrence.none();
 
   Event? _original;
   bool _hydrated = false;
@@ -51,6 +55,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     _startAt = event.startAt;
     _endAt = event.endAt;
     _isAllDay = event.isAllDay;
+    _recurrence = Recurrence.decode(event.recurrence);
   }
 
   @override
@@ -131,8 +136,11 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
         ? DateTime(_startAt.year, _startAt.month, _startAt.day)
         : _startAt;
     final endAt = _isAllDay ? null : _endAt;
+    final recurrence = _recurrence;
 
+    final int eventId;
     if (_isEditing && _original != null) {
+      eventId = _original!.id;
       await repository.editEvent(
         original: _original!,
         title: title,
@@ -141,15 +149,30 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
         startAt: startAt,
         endAt: endAt,
         isAllDay: _isAllDay,
+        recurrence: recurrence,
       );
     } else {
-      await repository.addEvent(
+      eventId = await repository.addEvent(
         title: title,
         notes: notes.isEmpty ? null : notes,
         location: location.isEmpty ? null : location,
         startAt: startAt,
         endAt: endAt,
         isAllDay: _isAllDay,
+        recurrence: recurrence,
+      );
+    }
+
+    if (_isAllDay) {
+      // No specific instant to remind at.
+      await NotificationService.instance.cancelEventReminders(eventId);
+    } else {
+      await NotificationService.instance.scheduleEventReminder(
+        eventId: eventId,
+        title: title,
+        body: location.isEmpty ? null : location,
+        anchor: startAt,
+        recurrence: recurrence,
       );
     }
 
@@ -180,6 +203,7 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
     if (confirmed != true) return;
 
     await ref.read(eventRepositoryProvider).deleteEvent(original.id);
+    await NotificationService.instance.cancelEventReminders(original.id);
     if (mounted) context.pop();
   }
 
@@ -282,6 +306,12 @@ class _EventEditorScreenState extends ConsumerState<EventEditorScreen> {
                       onPressed: () => setState(() => _endAt = null),
                     ),
               onTap: _pickEnd,
+            ),
+            const SizedBox(height: 12),
+            RecurrencePicker(
+              value: _recurrence,
+              onChanged: (recurrence) =>
+                  setState(() => _recurrence = recurrence),
             ),
           ],
         ),

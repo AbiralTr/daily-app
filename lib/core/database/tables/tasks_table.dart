@@ -16,8 +16,9 @@ class Tasks extends Table {
   /// When the task was marked done. Cleared when it's un-checked.
   DateTimeColumn get completedAt => dateTime().nullable()();
 
-  /// Whether this task repeats every day rather than being a one-off.
-  BoolColumn get isDaily => boolean().withDefault(const Constant(false))();
+  /// Encoded [Recurrence] — null/absent means a one-off task. See
+  /// `Recurrence.encode`/`decode`.
+  TextColumn get recurrence => text().nullable()();
 
   /// Index into `TaskPriority.values` (0 = low, 1 = medium, 2 = high).
   IntColumn get priority => integer().withDefault(const Constant(1))();

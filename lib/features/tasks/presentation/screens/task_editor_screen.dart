@@ -4,7 +4,9 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../core/database/app_database.dart';
+import '../../../../core/models/recurrence.dart';
 import '../../../../core/notifications/notification_service.dart';
+import '../../../../shared/widgets/recurrence_picker.dart';
 import '../../domain/task_priority.dart';
 import '../providers/task_providers.dart';
 
@@ -26,7 +28,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
   final _categoryController = TextEditingController();
 
   late DateTime _dueDate;
-  bool _isDaily = false;
+  Recurrence _recurrence = const Recurrence.none();
   TaskPriority _priority = TaskPriority.medium;
 
   Task? _original;
@@ -50,7 +52,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     _notesController.text = task.notes ?? '';
     _categoryController.text = task.category ?? '';
     _dueDate = task.dueDate;
-    _isDaily = task.isDaily;
+    _recurrence = Recurrence.decode(task.recurrence);
     _priority = TaskPriority.fromValue(task.priority);
   }
 
@@ -104,7 +106,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         title: title,
         notes: notes.isEmpty ? null : notes,
         dueDate: _dueDate,
-        isDaily: _isDaily,
+        recurrence: _recurrence,
         priority: _priority,
         category: category.isEmpty ? null : category,
       );
@@ -113,22 +115,19 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
         title: title,
         notes: notes.isEmpty ? null : notes,
         dueDate: _dueDate,
-        isDaily: _isDaily,
+        recurrence: _recurrence,
         priority: _priority,
         category: category.isEmpty ? null : category,
       );
     }
 
-    if (_dueDate.isAfter(DateTime.now())) {
-      await NotificationService.instance.scheduleTaskReminder(
-        id: taskId,
-        title: title,
-        body: notes.isEmpty ? null : notes,
-        dueDate: _dueDate,
-      );
-    } else {
-      await NotificationService.instance.cancel(taskId);
-    }
+    await NotificationService.instance.scheduleTaskReminder(
+      taskId: taskId,
+      title: title,
+      body: notes.isEmpty ? null : notes,
+      anchor: _dueDate,
+      recurrence: _recurrence,
+    );
 
     if (mounted) context.pop();
   }
@@ -157,7 +156,7 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
     if (confirmed != true) return;
 
     await ref.read(taskRepositoryProvider).deleteTask(original.id);
-    await NotificationService.instance.cancel(original.id);
+    await NotificationService.instance.cancelTaskReminders(original.id);
     if (mounted) context.pop();
   }
 
@@ -255,11 +254,11 @@ class _TaskEditorScreenState extends ConsumerState<TaskEditorScreen> {
               trailing: const Icon(Icons.calendar_today_outlined),
               onTap: _pickDate,
             ),
-            SwitchListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Repeats daily'),
-              value: _isDaily,
-              onChanged: (value) => setState(() => _isDaily = value),
+            const SizedBox(height: 12),
+            RecurrencePicker(
+              value: _recurrence,
+              onChanged: (recurrence) =>
+                  setState(() => _recurrence = recurrence),
             ),
           ],
         ),

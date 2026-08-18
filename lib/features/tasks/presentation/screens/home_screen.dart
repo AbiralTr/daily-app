@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../../../core/database/app_database.dart';
 import '../../../../shared/widgets/progress_ring.dart';
+import '../../domain/task_occurrence.dart';
 import '../providers/task_providers.dart';
 import '../widgets/task_tile.dart';
 
@@ -67,9 +68,9 @@ class HomeScreen extends ConsumerWidget {
                       ),
                     ),
                     tasksAsync.maybeWhen(
-                      data: (tasks) => ProgressRing(
-                        done: tasks.where((t) => t.isDone).length,
-                        total: tasks.length,
+                      data: (occurrences) => ProgressRing(
+                        done: occurrences.where((o) => o.isDone).length,
+                        total: occurrences.length,
                       ),
                       orElse: () => const SizedBox(width: 56, height: 56),
                     ),
@@ -86,9 +87,19 @@ class HomeScreen extends ConsumerWidget {
                         itemCount: overdue.length,
                         itemBuilder: (context, index) {
                           final task = overdue[index];
-                          return TaskTile(
+                          final occurrence = TaskOccurrence(
                             task: task,
-                            onToggle: () => repository.toggleDone(task),
+                            occurrenceDate: DateTime(
+                              task.dueDate.year,
+                              task.dueDate.month,
+                              task.dueDate.day,
+                            ),
+                            isDone: task.isDone,
+                          );
+                          return TaskTile(
+                            occurrence: occurrence,
+                            onToggle: () =>
+                                repository.toggleOccurrence(occurrence),
                             onDelete: () => repository.deleteTask(task.id),
                             onTap: () => context.push('/task/${task.id}/edit'),
                           );
@@ -98,22 +109,23 @@ class HomeScreen extends ConsumerWidget {
               orElse: () => const [],
             ),
             tasksAsync.when(
-              data: (tasks) {
-                if (tasks.isEmpty) {
+              data: (occurrences) {
+                if (occurrences.isEmpty) {
                   return const SliverFillRemaining(
                     hasScrollBody: false,
                     child: _EmptyState(),
                   );
                 }
                 return SliverList.builder(
-                  itemCount: tasks.length,
+                  itemCount: occurrences.length,
                   itemBuilder: (context, index) {
-                    final task = tasks[index];
+                    final occurrence = occurrences[index];
                     return TaskTile(
-                      task: task,
-                      onToggle: () => repository.toggleDone(task),
-                      onDelete: () => repository.deleteTask(task.id),
-                      onTap: () => context.push('/task/${task.id}/edit'),
+                      occurrence: occurrence,
+                      onToggle: () => repository.toggleOccurrence(occurrence),
+                      onDelete: () => repository.deleteTask(occurrence.task.id),
+                      onTap: () =>
+                          context.push('/task/${occurrence.task.id}/edit'),
                     );
                   },
                 );

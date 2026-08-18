@@ -4,6 +4,7 @@ import '../../../../core/database/app_database.dart';
 import '../../../../core/providers/database_provider.dart';
 import '../../../../core/providers/selected_date_provider.dart';
 import '../../data/task_repository.dart';
+import '../../domain/task_occurrence.dart';
 
 export '../../../../core/providers/selected_date_provider.dart';
 
@@ -11,13 +12,15 @@ final taskRepositoryProvider = Provider<TaskRepository>((ref) {
   return TaskRepository(ref.watch(appDatabaseProvider));
 });
 
-final tasksForSelectedDateProvider = StreamProvider<List<Task>>((ref) {
+final tasksForSelectedDateProvider = StreamProvider<List<TaskOccurrence>>((
+  ref,
+) {
   final date = ref.watch(selectedDateProvider);
   return ref.watch(taskRepositoryProvider).watchTasksForDate(date);
 });
 
-/// Unfinished tasks from before the selected day — only meaningful (and
-/// only shown) when the selected day is today.
+/// Unfinished one-off tasks from before the selected day — only meaningful
+/// (and only shown) when the selected day is today.
 final overdueTasksProvider = StreamProvider<List<Task>>((ref) {
   final date = ref.watch(selectedDateProvider);
   return ref.watch(taskRepositoryProvider).watchOverdueTasks(date);
