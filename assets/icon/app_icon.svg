@@ -1,0 +1,22 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00473E"/>
+      <stop offset="55%" stop-color="#00796B"/>
+      <stop offset="100%" stop-color="#26A69A"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- subtle "today" ring accent, top-right -->
+  <circle cx="796" cy="228" r="34" fill="none" stroke="#FFFFFF" stroke-opacity="0.28" stroke-width="14"/>
+
+  <!-- bold checkmark -->
+  <path d="M296 540 L456 700 L742 350"
+        fill="none"
+        stroke="#FFFFFF"
+        stroke-width="88"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+</svg>
